@@ -1060,7 +1060,7 @@ fun CustomizerUI(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val isMuqtada = preferences.selfUserId == "user_a"
-            val isSarah = preferences.selfUserId == "user_b"
+            val isSaja = preferences.selfUserId == "user_b"
 
             Button(
                 onClick = { onSelfUserIdChanged("user_a") },
@@ -1078,14 +1078,14 @@ fun CustomizerUI(
             Button(
                 onClick = { onSelfUserIdChanged("user_b") },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSarah) Color(0xFF006A6A) else Color(0xFF6750A4).copy(alpha = 0.08f),
-                    contentColor = if (isSarah) Color.White else Color(0xFF49454F)
+                    containerColor = if (isSaja) Color(0xFF006A6A) else Color(0xFF6750A4).copy(alpha = 0.08f),
+                    contentColor = if (isSaja) Color.White else Color(0xFF49454F)
                 ),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.weight(1f).height(38.dp),
                 contentPadding = PaddingValues(0.dp)
             ) {
-                Text("Identify as Sarah", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Identify as Saja", fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -1102,7 +1102,7 @@ fun CustomizerUI(
             OutlinedTextField(
                 value = preferences.syncRoomCode,
                 onValueChange = onSyncRoomCodeChanged,
-                placeholder = { Text("e.g. muqtada_sarah_room", fontSize = 13.sp) },
+                placeholder = { Text("e.g. muqtada_saja_room", fontSize = 13.sp) },
                 singleLine = true,
                 modifier = Modifier.weight(1.5f),
                 colors = OutlinedTextFieldDefaults.colors(

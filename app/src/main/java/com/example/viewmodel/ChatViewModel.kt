@@ -56,7 +56,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
             initialValue = ChatPreferences()
         )
 
-    // One-on-one current user toggle ("user_a" representing Muqtada, "user_b" representing Sarah)
+    // One-on-one current user toggle ("user_a" representing Muqtada, "user_b" representing Saja)
     val currentUser = MutableStateFlow("user_a")
 
     // Voice recording states
