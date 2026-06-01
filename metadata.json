@@ -1,0 +1,8 @@
+{
+  "name": "Remix: DuoChat",
+  "description": "A design-forward one-on-one messaging app with real-time support, custom backgrounds, voice notes, and accent styling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
