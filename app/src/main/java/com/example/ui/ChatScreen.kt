@@ -1196,7 +1196,6 @@ fun SmartphoneFrame(
                     .shadow(16.dp, shape = RoundedCornerShape(32.dp))
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    SimulatedStatusBar(isDark = isDark)
                     Box(modifier = Modifier.weight(1f)) {
                         content()
                     }
@@ -1205,79 +1204,11 @@ fun SmartphoneFrame(
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                SimulatedStatusBar(isDark = isDark)
                 Box(modifier = Modifier.weight(1f)) {
                     content()
                 }
                 SimulatedGestureBar(isDark = isDark)
             }
-        }
-    }
-}
-
-@Composable
-fun SimulatedStatusBar(isDark: Boolean) {
-    val barColor = if (isDark) Color(0xFF1F2C34) else Color(0xFFFFFFFF)
-    val contentColor = if (isDark) Color.White else Color(0xFF111B21)
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(barColor)
-            .height(30.dp)
-            .padding(horizontal = 16.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "9:07",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = contentColor
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.Default.CalendarToday,
-                contentDescription = null,
-                tint = contentColor.copy(alpha = 0.8f),
-                modifier = Modifier.size(11.dp)
-            )
-        }
-        
-        Box(
-            modifier = Modifier
-                .size(width = 44.dp, height = 12.dp)
-                .background(Color.Black, CircleShape)
-        )
-        
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Icon(
-                imageVector = Icons.Default.Wifi,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(13.dp)
-            )
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(1.5.dp),
-                modifier = Modifier.padding(bottom = 1.dp)
-            ) {
-                val heights = listOf(3.dp, 5.dp, 7.dp, 10.dp)
-                heights.forEachIndexed { index, h ->
-                    Box(
-                        modifier = Modifier
-                            .size(width = 2.dp, height = h)
-                            .background(color = contentColor.copy(alpha = if (index < 3) 1f else 0.4f), shape = RoundedCornerShape(0.5.dp))
-                    )
-                }
-            }
-            Icon(
-                imageVector = Icons.Default.BatteryChargingFull,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(13.dp)
-            )
         }
     }
 }

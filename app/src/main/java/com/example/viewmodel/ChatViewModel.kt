@@ -12,6 +12,7 @@ import com.example.data.ChatDatabase
 import com.example.data.ChatPreferences
 import com.example.data.Message
 import com.example.data.ChatRepository
+import com.example.util.NotificationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,6 +38,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     private val database = ChatDatabase.getDatabase(context)
     private val repository = ChatRepository(database.chatDao)
     private val audioManager = AudioManager(context)
+    private val notificationHelper = NotificationHelper(context)
 
     // Reactive lists of messages & user preferences
     val messages: StateFlow<List<Message>> = repository.allMessages
@@ -250,6 +252,16 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                             messageUuid = msgUuid
                         )
                         repository.insertMessage(incomingMsg)
+
+                        // Trigger native push-style message notification for received messages
+                        val senderName = if (msgSenderId == "user_b") "WABetaInfo" else if (msgSenderId == "user_a") "Muqtada" else msgSenderId
+                        val displayBody = when (msgType) {
+                            "VOICE" -> "🎤 Voice Message (${msgDurationMs / 1000}s)"
+                            "PHOTO" -> "📷 Sent a photo"
+                            "VIDEO" -> "📹 Sent a video"
+                            else -> msgContent
+                        }
+                        notificationHelper.showMessageNotification(senderName, displayBody)
                     }
                 }
             }

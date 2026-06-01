@@ -20,6 +20,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Request POST_NOTIFICATIONS permission defensively on Android 13+ (API 33+)
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            try {
+                requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 101)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         setContent {
             MyApplicationTheme {
                 val viewModel: ChatViewModel = viewModel(
