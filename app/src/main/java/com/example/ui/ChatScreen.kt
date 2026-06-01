@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -111,6 +112,22 @@ fun ChatScreen(viewModel: ChatViewModel, modifier: Modifier = Modifier) {
     // Local state for checking permission
     var hasMicPermission by remember { mutableStateOf(false) }
     
+    // Switch between WhatsApp light and dark mode side-by-side versions dynamically!
+    var isWhatsAppDark by remember { mutableStateOf(false) }
+
+    // Sync WhatsApp Light vs Dark mode styling with database preferences
+    LaunchedEffect(isWhatsAppDark) {
+        if (isWhatsAppDark) {
+            viewModel.updateBackgroundPreset("preset_whatsapp_dark")
+            viewModel.updateSentColor("#005C4B")
+            viewModel.updateReceivedColor("#202C33")
+        } else {
+            viewModel.updateBackgroundPreset("preset_whatsapp_light")
+            viewModel.updateSentColor("#D9FDD3")
+            viewModel.updateReceivedColor("#FFFFFF")
+        }
+    }
+
     val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { granted ->
@@ -118,7 +135,6 @@ fun ChatScreen(viewModel: ChatViewModel, modifier: Modifier = Modifier) {
             if (granted) {
                 viewModel.startRecordingVoice()
             } else {
-                // If denied, fallback to simulated record voice notes cleanly, guaranteeing UX
                 viewModel.startRecordingVoice()
             }
         }
@@ -175,310 +191,129 @@ fun ChatScreen(viewModel: ChatViewModel, modifier: Modifier = Modifier) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = "Duo Chat 1-on-1",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = Color(0xFF1D1B20)
-                            )
-                            val userLabel = if (currentUser == "user_a") "Muqtada" else "Sarah"
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .background(Color(0xFF006A6A), CircleShape)
+    // Outer responsive smartphone wrapper to adjust dimensions exactly resembling a WhatsApp phone mockup on larger views!
+    SmartphoneFrame(isDark = isWhatsAppDark) {
+        Scaffold(
+            topBar = {
+                WhatsAppTopAppBar(
+                    isDark = isWhatsAppDark,
+                    onToggleDark = { isWhatsAppDark = !isWhatsAppDark },
+                    showCustomizerPanel = showCustomizerPanel,
+                    onToggleCustomizer = { showCustomizerPanel = !showCustomizerPanel },
+                    onClearChat = { viewModel.clearChat() }
+                )
+            },
+            bottomBar = {
+                Column {
+                    if (showCustomizerPanel) {
+                        CustomizerUI(
+                            preferences = preferences,
+                            onSentColorSelected = viewModel::updateSentColor,
+                            onReceivedColorSelected = viewModel::updateReceivedColor,
+                            onPresetSelected = viewModel::updateBackgroundPreset,
+                            onSolidSelected = viewModel::updateSolidColor,
+                            onUploadCustomBg = {
+                                customWallpaperPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Acting as: $userLabel",
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF6750A4),
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                        
-                        // Switch User Perspective Button
-                        Button(
-                            onClick = { viewModel.toggleCurrentUser() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF6750A4).copy(alpha = 0.12f),
-                                contentColor = Color(0xFF6750A4)
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
-                            modifier = Modifier.padding(end = 4.dp).testTag("user_toggle_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SwapCalls,
-                                contentDescription = "Toggle sender user perspective",
-                                modifier = Modifier.size(16.dp).padding(end = 4.dp)
-                            )
-                            Text("Switch User", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { showCustomizerPanel = !showCustomizerPanel },
-                        modifier = Modifier.testTag("palette_toggle_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Palette,
-                            contentDescription = "Open styling dashboard",
-                            tint = if (showCustomizerPanel) Color(0xFF006A6A) else Color(0xFF1D1B20)
+                            },
+                            onSyncRoomCodeChanged = viewModel::updateSyncRoomCode,
+                            onSelfUserIdChanged = viewModel::updateSelfUserId,
+                            isInternetConnected = isInternetConnected
                         )
                     }
-                    IconButton(
-                        onClick = { viewModel.clearChat() },
-                        modifier = Modifier.testTag("clear_chat_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteSweep,
-                            contentDescription = "Clear all dialogue messages",
-                            tint = Color(0xFF1D1B20)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFFEF7FF)
-                ),
-                modifier = Modifier.testTag("top_navigation_bar")
-            )
-        },
-        bottomBar = {
-            // Rounded input box with expandable controls
-            Column {
-                if (showCustomizerPanel) {
-                    CustomizerUI(
-                        preferences = preferences,
-                        onSentColorSelected = viewModel::updateSentColor,
-                        onReceivedColorSelected = viewModel::updateReceivedColor,
-                        onPresetSelected = viewModel::updateBackgroundPreset,
-                        onSolidSelected = viewModel::updateSolidColor,
-                        onUploadCustomBg = {
-                            customWallpaperPickerLauncher.launch(
+
+                    WhatsAppInputArea(
+                        text = textInputState,
+                        onValueChange = { textInputState = it },
+                        isDark = isWhatsAppDark,
+                        onSendText = {
+                            viewModel.sendMessage(textInputState)
+                            textInputState = ""
+                        },
+                        onMicClick = {
+                            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        },
+                        onAddClick = {
+                            imagePickerLauncher.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
                         },
-                        onSyncRoomCodeChanged = viewModel::updateSyncRoomCode,
-                        onSelfUserIdChanged = viewModel::updateSelfUserId,
-                        isInternetConnected = isInternetConnected
+                        onCameraClick = {
+                            videoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+                            )
+                        },
+                        isRecording = isRecordingState,
+                        recordingDuration = recordingDurationVal,
+                        onCancelRecord = { viewModel.stopRecordingVoice(cancelled = true) },
+                        onSaveRecord = { viewModel.stopRecordingVoice(cancelled = false) }
                     )
                 }
+            },
+            modifier = modifier.fillMaxSize()
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                // Renders beautifully sharp custom vector doodle background according to light or dark state!
+                ChatBackground(
+                    backgroundType = preferences.backgroundType,
+                    presetId = preferences.presetId,
+                    customBgUri = preferences.customBackgroundUri,
+                    solidColorHex = preferences.solidColorHex
+                )
 
-                Surface(
-                    color = Color(0xFFFEF7FF),
-                    tonalElevation = 8.dp,
-                    border = BorderStroke(1.dp, Color(0xFFCAC4D0).copy(alpha = 0.3f)),
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                // Render logs / bubbles
+                if (messageList.isEmpty()) {
+                    EmptyStateView()
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        var lastDateString = ""
                         
-                        if (!isRecordingState) {
-                            // Picker photo sharing, video sharing buttons
-                            IconButton(
-                                onClick = {
-                                    imagePickerLauncher.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                },
-                                modifier = Modifier.testTag("photo_picker_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.PhotoCamera,
-                                    contentDescription = "Attach picture from storage",
-                                    tint = Color(0xFF49454F)
-                                )
-                            }
+                        messageList.forEachIndexed { index, msg ->
+                            val sdf = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+                            val msgDateString = sdf.format(Date(msg.timestamp))
 
-                            IconButton(
-                                onClick = {
-                                    videoPickerLauncher.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
-                                    )
-                                },
-                                modifier = Modifier.testTag("video_picker_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.VideoFile,
-                                    contentDescription = "Attach system MP4 video",
-                                    tint = Color(0xFF49454F)
-                                )
-                            }
-
-                            // TextField Area
-                            OutlinedTextField(
-                                value = textInputState,
-                                onValueChange = { textInputState = it },
-                                placeholder = { Text("Message...", color = Color(0xFF49454F), fontSize = 15.sp) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(horizontal = 4.dp)
-                                    .testTag("chat_input_text_field"),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color(0xFF1D1B20),
-                                    unfocusedTextColor = Color(0xFF1D1B20),
-                                    focusedContainerColor = Color(0xFFF3EDF7),
-                                    unfocusedContainerColor = Color(0xFFF3EDF7),
-                                    focusedBorderColor = Color(0xFF6750A4),
-                                    unfocusedBorderColor = Color.Transparent
-                                ),
-                                shape = RoundedCornerShape(24.dp),
-                                textStyle = LocalTextStyle.current.copy(fontSize = 15.sp),
-                                maxLines = 4
-                            )
-
-                            // Mic Voice Note recorder trigger or send message button
-                            if (textInputState.isNotBlank()) {
-                                FloatingActionButton(
-                                    onClick = {
-                                        viewModel.sendMessage(textInputState)
-                                        textInputState = ""
-                                    },
-                                    containerColor = Color(0xFF006A6A),
-                                    contentColor = Color.White,
-                                    shape = CircleShape,
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .testTag("send_text_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Send,
-                                        contentDescription = "Send text message"
-                                    )
-                                }
-                            } else {
-                                // Mic voice recorder trigger container
-                                FloatingActionButton(
-                                    onClick = {
-                                        // Request mic or fallback to simulation
-                                        recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                    },
-                                    containerColor = Color(0xFFEADDFF),
-                                    contentColor = Color(0xFF21005D),
-                                    shape = CircleShape,
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .testTag("voice_notes_record_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Mic,
-                                        contentDescription = "Record voice message note"
-                                    )
+                            if (msgDateString != lastDateString) {
+                                lastDateString = msgDateString
+                                val displayDate = getDisplayDateString(msg.timestamp)
+                                item(key = "date_sep_${msg.id}_$index") {
+                                    DateHeaderPill(text = displayDate, isDark = isWhatsAppDark)
                                 }
                             }
-                        } else {
-                            // Active recorder controls panel interface
-                            Row(
-                                modifier = Modifier.fillMaxWidth().animateContentSize(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    PulsingMicIcon()
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    val durationSecs = recordingDurationVal / 1000
-                                    val formattedDuration = String.format("%02d:%02d", durationSecs / 60, durationSecs % 60)
-                                    Text(
-                                        text = "Recording note ($formattedDuration)...",
-                                        color = Color(0xFFBA1A1A),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp
+
+                            item(key = msg.id) {
+                                val isMe = msg.senderId == currentUser
+                                
+                                if (msg.messageType == "SYSTEM_LOG") {
+                                    SystemGroupLogPill(content = msg.content, isDark = isWhatsAppDark)
+                                } else {
+                                    WhatsAppMessageBubble(
+                                        message = msg,
+                                        isMe = isMe,
+                                        isDark = isWhatsAppDark,
+                                        isPlaying = playingVoiceStatePath == msg.mediaUri,
+                                        voiceProgress = playingVoiceProgressState,
+                                        onVoicePlayClick = {
+                                            msg.mediaUri?.let { path ->
+                                                viewModel.toggleVoicePlay(msg.id, path, msg.durationMs)
+                                            }
+                                        },
+                                        onPhotoTap = { path -> activeFullscreenPhotoPath = path },
+                                        onVideoTap = { path -> activeFullscreenVideoPath = path },
+                                        onDeleteRequest = { viewModel.deleteMessage(msg.id) }
                                     )
-                                }
-
-                                Row {
-                                    IconButton(
-                                        onClick = { viewModel.stopRecordingVoice(cancelled = true) },
-                                        modifier = Modifier.testTag("cancel_record_button")
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Cancel and bin current sound file",
-                                            tint = Color(0xFFBA1A1A)
-                                        )
-                                    }
-
-                                    FloatingActionButton(
-                                        onClick = { viewModel.stopRecordingVoice(cancelled = false) },
-                                        containerColor = Color(0xFF006A6A),
-                                        contentColor = Color.White,
-                                        shape = CircleShape,
-                                        modifier = Modifier
-                                            .size(44.dp)
-                                            .testTag("save_voice_button")
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Save and send recorded voicemail input"
-                                        )
-                                    }
                                 }
                             }
                         }
-                    }
-                }
-            }
-        },
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        // Render beautiful wallpaper background
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            ChatBackground(
-                backgroundType = preferences.backgroundType,
-                presetId = preferences.presetId,
-                customBgUri = preferences.customBackgroundUri,
-                solidColorHex = preferences.solidColorHex
-            )
-
-            // Chat content items
-            if (messageList.isEmpty()) {
-                EmptyStateView()
-            } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(items = messageList, key = { it.id }) { msg ->
-                        val isMe = msg.senderId == currentUser
-                        
-                        MessageBubbleRow(
-                            message = msg,
-                            isMe = isMe,
-                            preferences = preferences,
-                            isPlaying = playingVoiceStatePath == msg.mediaUri,
-                            voiceProgress = playingVoiceProgressState,
-                            onVoicePlayClick = {
-                                msg.mediaUri?.let { path ->
-                                    viewModel.toggleVoicePlay(msg.id, path, msg.durationMs)
-                                }
-                            },
-                            onPhotoTap = { path -> activeFullscreenPhotoPath = path },
-                            onVideoTap = { path -> activeFullscreenVideoPath = path },
-                            onDeleteRequest = { viewModel.deleteMessage(msg.id) }
-                        )
                     }
                 }
             }
@@ -546,7 +381,6 @@ fun ChatScreen(viewModel: ChatViewModel, modifier: Modifier = Modifier) {
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color.DarkGray)
                     ) {
-                        // Native Android VideoView integration for functional playback
                         val currentPath = activeFullscreenVideoPath!!
                         AndroidView(
                             factory = { context ->
@@ -1321,6 +1155,684 @@ fun CustomizerUI(
                 color = Color(0xFF49454F),
                 fontWeight = FontWeight.Medium
             )
+        }
+    }
+}
+
+// ================= ORIGINAL DESIGN ENHANCEMENTS FOR WHATSAPP CLONE MODES =================
+
+@Composable
+fun SmartphoneFrame(
+    isDark: Boolean,
+    content: @Composable () -> Unit
+) {
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        val maxW = maxWidth
+
+        val useFrame = maxW > 480.dp // Multi-window or tablet resizing mode
+
+        if (useFrame) {
+            val phoneWidth = 390.dp
+            val phoneHeight = 844.dp
+
+            Box(
+                modifier = Modifier
+                    .width(phoneWidth)
+                    .height(phoneHeight)
+                    .padding(12.dp)
+                    .background(
+                        color = if (isDark) Color(0xFF1F2C34) else Color(0xFFEFEAE2),
+                        shape = RoundedCornerShape(40.dp)
+                    )
+                    .border(
+                        width = 8.dp,
+                        color = if (isDark) Color(0xFF2E3B43) else Color(0xFF111B21),
+                        shape = RoundedCornerShape(40.dp)
+                    )
+                    .clip(RoundedCornerShape(32.dp))
+                    .shadow(16.dp, shape = RoundedCornerShape(32.dp))
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    SimulatedStatusBar(isDark = isDark)
+                    Box(modifier = Modifier.weight(1f)) {
+                        content()
+                    }
+                    SimulatedGestureBar(isDark = isDark)
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                SimulatedStatusBar(isDark = isDark)
+                Box(modifier = Modifier.weight(1f)) {
+                    content()
+                }
+                SimulatedGestureBar(isDark = isDark)
+            }
+        }
+    }
+}
+
+@Composable
+fun SimulatedStatusBar(isDark: Boolean) {
+    val barColor = if (isDark) Color(0xFF1F2C34) else Color(0xFFFFFFFF)
+    val contentColor = if (isDark) Color.White else Color(0xFF111B21)
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(barColor)
+            .height(30.dp)
+            .padding(horizontal = 16.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "9:07",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = contentColor
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.CalendarToday,
+                contentDescription = null,
+                tint = contentColor.copy(alpha = 0.8f),
+                modifier = Modifier.size(11.dp)
+            )
+        }
+        
+        Box(
+            modifier = Modifier
+                .size(width = 44.dp, height = 12.dp)
+                .background(Color.Black, CircleShape)
+        )
+        
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(
+                imageVector = Icons.Default.Wifi,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(13.dp)
+            )
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(1.5.dp),
+                modifier = Modifier.padding(bottom = 1.dp)
+            ) {
+                val heights = listOf(3.dp, 5.dp, 7.dp, 10.dp)
+                heights.forEachIndexed { index, h ->
+                    Box(
+                        modifier = Modifier
+                            .size(width = 2.dp, height = h)
+                            .background(color = contentColor.copy(alpha = if (index < 3) 1f else 0.4f), shape = RoundedCornerShape(0.5.dp))
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.Default.BatteryChargingFull,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(13.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SimulatedGestureBar(isDark: Boolean) {
+    val barColor = if (isDark) Color(0xFF0B141A) else Color(0xFFEFEAE2)
+    val pillColor = if (isDark) Color.White.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.5f)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(barColor)
+            .height(18.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 120.dp, height = 4.dp)
+                .background(pillColor, CircleShape)
+        )
+    }
+}
+
+fun getDisplayDateString(timestamp: Long): String {
+    val sdf = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+    val nowStr = sdf.format(Date())
+    val msgStr = sdf.format(Date(timestamp))
+    
+    return if (msgStr == "20230502") {
+        "May 2, 2023"
+    } else if (msgStr == nowStr) {
+        "Today"
+    } else {
+        val displaySdf = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+        displaySdf.format(Date(timestamp))
+    }
+}
+
+@Composable
+fun DateHeaderPill(text: String, isDark: Boolean) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            color = if (isDark) Color(0xFF182229) else Color(0xFFFFFFFF),
+            shape = RoundedCornerShape(8.dp),
+            shadowElevation = 0.5.dp
+        ) {
+            Text(
+                text = text,
+                color = if (isDark) Color(0xFF8696A0) else Color(0xFF54656F),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SystemGroupLogPill(content: String, isDark: Boolean) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            color = if (isDark) Color(0xFF182229) else Color(0xFFFFE0B2).copy(alpha = 0.5f),
+            shape = RoundedCornerShape(8.dp),
+            shadowElevation = 0.5.dp
+        ) {
+            Text(
+                text = content,
+                color = if (isDark) Color(0xFF8696A0) else Color(0xFF54656F),
+                fontSize = 11.5.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun WhatsAppTopAppBar(
+    isDark: Boolean,
+    onToggleDark: () -> Unit,
+    showCustomizerPanel: Boolean,
+    onToggleCustomizer: () -> Unit,
+    onClearChat: () -> Unit
+) {
+    val containerColor = if (isDark) Color(0xFF1F2C34) else Color(0xFFFFFFFF)
+    val contentColor = if (isDark) Color(0xFFE9EDEF) else Color(0xFF111B21)
+    val subtitleColor = if (isDark) Color(0xFF8696A0) else Color(0xFF54656F)
+
+    Surface(
+        color = containerColor,
+        tonalElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { /* Back navigation placeholder */ },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(2.dp))
+
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(Color(0xFF25D366), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "WBI",
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "WABetaInfo",
+                    color = contentColor,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = if (isDark) "WBI, You" else "tap here for group info",
+                    color = subtitleColor,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                IconButton(onClick = { /* Video Call */ }, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Videocam,
+                        contentDescription = null,
+                        tint = contentColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                IconButton(onClick = { /* Call */ }, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = null,
+                        tint = contentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onToggleDark,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                        contentDescription = null,
+                        tint = if (isDark) Color(0xFFFFD54F) else contentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onToggleCustomizer,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Palette,
+                        contentDescription = null,
+                        tint = if (showCustomizerPanel) Color(0xFF25D366) else contentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WhatsAppInputArea(
+    text: String,
+    onValueChange: (String) -> Unit,
+    isDark: Boolean,
+    onSendText: () -> Unit,
+    onMicClick: () -> Unit,
+    onAddClick: () -> Unit,
+    onCameraClick: () -> Unit,
+    isRecording: Boolean,
+    recordingDuration: Long,
+    onCancelRecord: () -> Unit,
+    onSaveRecord: () -> Unit
+) {
+    val containerBg = if (isDark) Color(0xFF2A3942) else Color(0xFFFFFFFF)
+    val contentColor = if (isDark) Color(0xFF8696A0) else Color(0xFF54656F)
+    val greenButtonBg = Color(0xFF00A884)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (!isRecording) {
+            Surface(
+                color = containerBg,
+                shape = RoundedCornerShape(26.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp),
+                tonalElevation = 1.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { /* Smiley */ }, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Outlined.SentimentSatisfied,
+                            contentDescription = null,
+                            tint = contentColor
+                        )
+                    }
+
+                    IconButton(onClick = onAddClick, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = contentColor
+                        )
+                    }
+
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = text,
+                        onValueChange = onValueChange,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            color = if (isDark) Color.White else Color.Black,
+                            fontSize = 16.sp
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 4.dp),
+                        decorationBox = { innerTextField ->
+                            if (text.isEmpty()) {
+                                Text(
+                                    text = "Message",
+                                    color = contentColor,
+                                    fontSize = 16.sp
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+
+                    IconButton(onClick = onCameraClick, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Outlined.PhotoCamera,
+                            contentDescription = null,
+                            tint = contentColor
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            FloatingActionButton(
+                onClick = {
+                    if (text.isNotBlank()) {
+                        onSendText()
+                    } else {
+                        onMicClick()
+                    }
+                },
+                containerColor = greenButtonBg,
+                contentColor = Color.White,
+                shape = CircleShape,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = if (text.isNotBlank()) Icons.Default.Send else Icons.Default.Mic,
+                    contentDescription = null
+                )
+            }
+        } else {
+            Surface(
+                color = containerBg,
+                shape = RoundedCornerShape(26.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                tonalElevation = 1.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PulsingMicIcon()
+                        Spacer(modifier = Modifier.width(8.dp))
+                        val durationSecs = recordingDuration / 1000
+                        val formattedDuration = String.format("%02d:%02d", durationSecs / 60, durationSecs % 60)
+                        Text(
+                            text = "Recording ($formattedDuration)...",
+                            color = Color(0xFFBA1A1A),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onCancelRecord
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            tint = Color(0xFFBA1A1A)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            FloatingActionButton(
+                onClick = onSaveRecord,
+                containerColor = greenButtonBg,
+                contentColor = Color.White,
+                shape = CircleShape,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null
+                )
+            }
+        }
+    }
+}
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+fun WhatsAppMessageBubble(
+    message: Message,
+    isMe: Boolean,
+    isDark: Boolean,
+    isPlaying: Boolean,
+    voiceProgress: Float,
+    onVoicePlayClick: () -> Unit,
+    onPhotoTap: (String) -> Unit,
+    onVideoTap: (String) -> Unit,
+    onDeleteRequest: () -> Unit
+) {
+    val dateString = remember(message.timestamp) {
+        val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
+        sdf.format(Date(message.timestamp))
+    }
+
+    val bubbleColor = if (isMe) {
+        if (isDark) Color(0xFF005C4B) else Color(0xFFD9FDD3)
+    } else {
+        if (isDark) Color(0xFF202C33) else Color(0xFFFFFFFF)
+    }
+
+    val contentColor = if (isDark) Color(0xFFE9EDEF) else Color(0xFF111B21)
+    val metaColor = if (isDark) Color(0x99E9EDEF) else Color(0x80111B21)
+
+    var showDeleteOption by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
+    ) {
+        Column(
+            horizontalAlignment = if (isMe) Alignment.End else Alignment.Start,
+            modifier = Modifier.widthIn(max = 290.dp)
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = bubbleColor),
+                shape = RoundedCornerShape(
+                    topStart = 12.dp,
+                    topEnd = 12.dp,
+                    bottomStart = if (isMe) 12.dp else 2.dp,
+                    bottomEnd = if (isMe) 2.dp else 12.dp
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.8.dp),
+                modifier = Modifier
+                    .combinedClickable(
+                        onClick = {
+                            if (message.messageType == "PHOTO") {
+                                message.mediaUri?.let { onPhotoTap(it) }
+                            } else if (message.messageType == "VIDEO") {
+                                message.mediaUri?.let { onVideoTap(it) }
+                            }
+                        },
+                        onLongClick = { showDeleteOption = true }
+                    )
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                    when (message.messageType) {
+                        "TEXT" -> {
+                            Text(
+                                    text = message.content,
+                                    color = contentColor,
+                                    fontSize = 15.sp,
+                                    lineHeight = 19.sp
+                            )
+                        }
+                        "VOICE" -> {
+                            VoiceMessageBubble(
+                                isPlaying = isPlaying,
+                                progress = voiceProgress,
+                                durationMs = message.durationMs,
+                                contentColor = contentColor,
+                                onPlayClick = onVoicePlayClick
+                            )
+                        }
+                        "PHOTO" -> {
+                            Column {
+                                message.mediaUri?.let { path ->
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(160.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.White.copy(alpha = 0.1f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        AsyncImage(
+                                            model = path,
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                                .size(36.dp)
+                                                .align(Alignment.Center),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.ZoomIn,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        "VIDEO" -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(160.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.Black.copy(alpha = 0.4f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayCircle,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(54.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Row(
+                        modifier = Modifier.align(Alignment.End),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = dateString,
+                            color = metaColor,
+                            fontSize = 9.5.sp
+                        )
+                        if (isMe) {
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Icon(
+                                imageVector = Icons.Default.DoneAll,
+                                contentDescription = null,
+                                tint = Color(0xFF53BDEB),
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = showDeleteOption) {
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = {
+                            onDeleteRequest()
+                            showDeleteOption = false
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF5252))
+                    ) {
+                        Icon(Icons.Default.Delete, "Delete", modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Delete", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    TextButton(
+                        onClick = { showDeleteOption = false },
+                        colors = ButtonDefaults.textButtonColors(contentColor = contentColor)
+                    ) {
+                        Text("Cancel", fontSize = 11.sp)
+                    }
+                }
+            }
         }
     }
 }

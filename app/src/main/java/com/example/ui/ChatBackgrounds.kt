@@ -33,6 +33,8 @@ fun ChatBackground(
                     "preset_sunset" -> SunsetGlowBackground()
                     "preset_forest" -> ForestSageBackground()
                     "preset_lavender" -> SweetLavenderBackground()
+                    "preset_whatsapp_light" -> WhatsAppDoodleBackground(isDark = false)
+                    "preset_whatsapp_dark" -> WhatsAppDoodleBackground(isDark = true)
                     else -> MinimalSlateBackground()
                 }
             }
@@ -174,4 +176,174 @@ fun MinimalSlateBackground() {
          )
     )
     Box(modifier = Modifier.fillMaxSize().background(gradient))
+}
+
+@Composable
+fun WhatsAppDoodleBackground(isDark: Boolean) {
+    val bgColor = if (isDark) Color(0xFF0B141A) else Color(0xFFEFEAE2)
+    val strokeColor = if (isDark) Color(0xFF15222B) else Color(0xFFE4DEC3)
+
+    Canvas(modifier = Modifier.fillMaxSize().background(bgColor)) {
+        val width = size.width
+        val height = size.height
+
+        val cols = 5
+        val rows = 8
+        val cellW = width / cols
+        val cellH = height / rows
+
+        for (r in 0 until rows) {
+            for (c in 0 until cols) {
+                val seed = (r * cols + c) * 31
+                val rX = ((seed % 17) / 17.0f - 0.5f) * (cellW * 0.4f)
+                val rY = (((seed / 3) % 19) / 19.0f - 0.5f) * (cellH * 0.4f)
+                val rScale = 0.5f + ((seed % 11) / 11.0f) * 0.4f
+                val rRotation = ((seed % 360) - 180).toFloat()
+
+                val centerX = c * cellW + cellW / 2 + rX
+                val centerY = r * cellH + cellH / 2 + rY
+
+                val type = seed % 8
+
+                drawContext.canvas.save()
+                drawContext.canvas.translate(centerX, centerY)
+                drawContext.canvas.rotate(rRotation)
+
+                val sizePx = 28f * rScale
+
+                when (type) {
+                    0 -> { // Draw chat bubble
+                        val path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(-sizePx, -sizePx * 0.6f)
+                            lineTo(sizePx, -sizePx * 0.6f)
+                            lineTo(sizePx, sizePx * 0.6f)
+                            lineTo(-sizePx * 0.2f, sizePx * 0.6f)
+                            lineTo(-sizePx * 0.8f, sizePx)
+                            lineTo(-sizePx * 0.8f, sizePx * 0.6f)
+                            lineTo(-sizePx, sizePx * 0.6f)
+                            close()
+                        }
+                        drawPath(
+                            path = path,
+                            color = strokeColor,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f)
+                        )
+                    }
+                    1 -> { // Draw clock
+                        drawCircle(
+                            color = strokeColor,
+                            radius = sizePx * 0.8f,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f)
+                        )
+                        drawLine(
+                            color = strokeColor,
+                            start = Offset(0f, 0f),
+                            end = Offset(0f, -sizePx * 0.5f),
+                            strokeWidth = 2.5f
+                        )
+                        drawLine(
+                            color = strokeColor,
+                            start = Offset(0f, 0f),
+                            end = Offset(sizePx * 0.4f, 0f),
+                            strokeWidth = 2.5f
+                        )
+                    }
+                    2 -> { // Draw phone handset
+                        drawArc(
+                            color = strokeColor,
+                            startAngle = -150f,
+                            sweepAngle = 120f,
+                            useCenter = false,
+                            topLeft = Offset(-sizePx * 0.7f, -sizePx * 0.7f),
+                            size = androidx.compose.ui.geometry.Size(sizePx * 1.4f, sizePx * 1.4f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f)
+                        )
+                        drawLine(
+                            color = strokeColor,
+                            start = Offset(-sizePx * 0.5f, -sizePx * 0.2f),
+                            end = Offset(-sizePx * 0.2f, -sizePx * 0.5f),
+                            strokeWidth = 3f
+                        )
+                    }
+                    3 -> { // Draw simple cloud
+                        val path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(-sizePx * 0.5f, sizePx * 0.3f)
+                            cubicTo(-sizePx * 0.9f, sizePx * 0.3f, -sizePx * 0.9f, -sizePx * 0.3f, -sizePx * 0.4f, -sizePx * 0.3f)
+                            cubicTo(-sizePx * 0.4f, -sizePx * 0.7f, sizePx * 0.4f, -sizePx * 0.7f, sizePx * 0.4f, -sizePx * 0.2f)
+                            cubicTo(sizePx * 0.8f, -sizePx * 0.2f, sizePx * 0.8f, sizePx * 0.3f, sizePx * 0.5f, sizePx * 0.3f)
+                            close()
+                        }
+                        drawPath(
+                            path = path,
+                            color = strokeColor,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f)
+                        )
+                    }
+                    4 -> { // Draw checkmark
+                        val path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(-sizePx * 0.4f, 0f)
+                            lineTo(-sizePx * 0.1f, sizePx * 0.3f)
+                            lineTo(sizePx * 0.5f, -sizePx * 0.3f)
+                        }
+                        drawPath(
+                            path = path,
+                            color = strokeColor,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.8f)
+                        )
+                    }
+                    5 -> { // Draw star rays
+                        for (i in 0 until 4) {
+                            val angle = (i * 45).toDouble()
+                            val sVal = Math.sin(Math.toRadians(angle)) * sizePx
+                            val cVal = Math.cos(Math.toRadians(angle)) * sizePx
+                            drawLine(
+                                color = strokeColor,
+                                start = Offset((-cVal * 0.4f).toFloat(), (-sVal * 0.4f).toFloat()),
+                                end = Offset((cVal * 0.7f).toFloat(), (sVal * 0.7f).toFloat()),
+                                strokeWidth = 2.5f
+                            )
+                        }
+                    }
+                    6 -> { // Draw mini heart
+                        val path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(0f, sizePx * 0.4f)
+                            cubicTo(-sizePx * 0.8f, -sizePx * 0.5f, -sizePx * 0.2f, -sizePx, 0f, -sizePx * 0.2f)
+                            cubicTo(sizePx * 0.2f, -sizePx, sizePx * 0.8f, -sizePx * 0.5f, 0f, sizePx * 0.4f)
+                        }
+                        drawPath(
+                            path = path,
+                            color = strokeColor,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f)
+                        )
+                    }
+                    7 -> { // Draw camera
+                        val path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(-sizePx * 0.7f, -sizePx * 0.3f)
+                            lineTo(-sizePx * 0.3f, -sizePx * 0.3f)
+                            lineTo(-sizePx * 0.2f, -sizePx * 0.5f)
+                            lineTo(sizePx * 0.2f, -sizePx * 0.5f)
+                            lineTo(sizePx * 0.3f, -sizePx * 0.3f)
+                            lineTo(sizePx * 0.7f, -sizePx * 0.3f)
+                            lineTo(sizePx * 0.7f, sizePx * 0.5f)
+                            lineTo(-sizePx * 0.7f, sizePx * 0.5f)
+                            close()
+                        }
+                        drawPath(
+                            path = path,
+                            color = strokeColor,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f)
+                        )
+                        drawCircle(
+                            color = strokeColor,
+                            radius = sizePx * 0.2f,
+                            center = Offset(0f, sizePx * 0.1f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                        )
+                    }
+                }
+
+                drawContext.canvas.restore()
+            }
+        }
+    }
 }

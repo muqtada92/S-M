@@ -99,13 +99,30 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     private suspend fun prefillSampleChat() {
-        // Sample beautiful dialogue representing Muqtada and partner Sarah
+        val now = System.currentTimeMillis()
+        val may2Date = 1683017100000L // May 2, 2023
         val list = listOf(
-            Message(senderId = "user_b", content = "Hey Muqtada! Did you check out the new design system? ✨", timestamp = System.currentTimeMillis() - 600000, messageUuid = "sample-uuid-1"),
-            Message(senderId = "user_a", content = "Yes! It looks absolutely brilliant. I love how smooth the animations look! 🚀", timestamp = System.currentTimeMillis() - 500000, messageUuid = "sample-uuid-2"),
-            Message(senderId = "user_b", content = "I sent a voice note explaining how the custom transitions work here...", timestamp = System.currentTimeMillis() - 400000, messageUuid = "sample-uuid-3"),
-            Message(senderId = "user_b", content = "Voice Message", messageType = "VOICE", mediaUri = "SIMULATED_VOICE_SAMPLE_1.3gp", durationMs = 5400L, timestamp = System.currentTimeMillis() - 390000, messageUuid = "sample-uuid-4"),
-            Message(senderId = "user_a", content = "That makes perfect sense! Let's customize our bubble colors and chat screen too.", timestamp = System.currentTimeMillis() - 300000, messageUuid = "sample-uuid-5")
+            Message(
+                senderId = "system_log", 
+                content = "You created group \"WABetaInfo\"", 
+                timestamp = may2Date, 
+                messageType = "SYSTEM_LOG", 
+                messageUuid = "whatsapp-system-1"
+            ),
+            Message(
+                senderId = "user_b", 
+                content = "WABetaInfo", 
+                timestamp = may2Date + 5000L, 
+                messageType = "TEXT", 
+                messageUuid = "whatsapp-message-1"
+            ),
+            Message(
+                senderId = "user_a", 
+                content = "Hey there! This chat replicates the exact interface from the WABetaInfo screenshots! Tap the Dark/Light Mode toggle at the top bar to test both Light and Dark WhatsApp themes. 🚀",
+                timestamp = now - 50000L,
+                messageType = "TEXT",
+                messageUuid = "sample-uuid-2"
+            )
         )
         for (msg in list) {
             repository.insertMessage(msg)
